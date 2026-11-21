@@ -1,8 +1,10 @@
 import os
+import sys
 from pathlib import Path
 from datetime import timedelta
 import dj_database_url
 from dotenv import load_dotenv
+from corsheaders.defaults import default_headers
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -70,7 +72,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'apps.core.middleware.TenantResolutionMiddleware',
+    'apps.core.middleware.TenantHeaderMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -112,12 +114,27 @@ else:
         }
     }
 
+
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'apps.accounts.backends.CaseInsensitiveEmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 # Internationalization
@@ -212,7 +229,6 @@ SPECTACULAR_SETTINGS = {
 }
 
 # CORS & CSRF Configuration
-CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
@@ -221,7 +237,15 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
+    'https://omnicore.io',
     'https://omni-core-frontend-eta.vercel.app',
+    'https://omni-core-backend.vercel.app'
+]
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    *default_headers,
+    'x-tenant-id',
+    'x-requested-with',
 ]
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
@@ -229,20 +253,13 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'https://omni-core-frontend-eta.vercel.app',
     'http://127.0.0.1:3000',
+    'https://omnicore.io',
+    'https://omni-core-frontend-eta.vercel.app',
+    'https://omni-core-backend.vercel.app'
 ]
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'cookie',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'x-tenant-id',
-]
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Celery & Redis Configuration
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')

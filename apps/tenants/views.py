@@ -73,6 +73,17 @@ class PlatformTenantViewSet(viewsets.ModelViewSet):
     search_fields = ['company_name', 'tenant_id', 'slug', 'email']
     ordering_fields = ['created_at', 'company_name']
 
+    def perform_create(self, serializer):
+        tenant = serializer.save()
+        AuditService.record(
+            action='TENANT_CREATED',
+            actor=self.request.user if self.request.user.is_authenticated else None,
+            tenant=tenant,
+            target_type='Tenant',
+            target_id=str(tenant.id)
+        )
+
+
     @action(detail=True, methods=['post'])
     def suspend(self, request, pk=None):
         tenant = self.get_object()
@@ -245,19 +256,4 @@ class TenantMetadataView(APIView):
             'permissions': user_perms,
             'modules': sorted(list(modules))
         })
-
-
-class TenantProfileView(APIView):
-    """Read and update the active tenant's editable organization profile."""
-    permission_classes = [HasTenantAccess, HasPermission]
-    required_permission = 'tenant.manage'
-
-    def get(self, request):
-        return Response(TenantSerializer(request.tenant).data)
-
-    def patch(self, request):
-        serializer = TenantProfileSerializer(request.tenant, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        tenant = serializer.save()
-        return Response(TenantSerializer(tenant).data)
 
